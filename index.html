@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Clasificación de Tapitas por Color</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="scene-canvas"></canvas>
+
+  <div class="hud">
+    <h1>CLASIFICADOR DE TAPITAS</h1>
+    <div class="sub">Etapa 2 — simulación física completa</div>
+
+    <div class="ctrl-row">
+      <button id="start-btn" class="ctrl-btn">▶ Iniciar</button>
+      <button id="pause-btn" class="ctrl-btn">⏸ Pausar</button>
+      <button id="reset-btn" class="ctrl-btn">⟲ Reiniciar</button>
+    </div>
+
+    <div id="detected-color" class="detected">COLOR DETECTADO: —</div>
+
+    <div class="bin-row">
+      <span class="dot dot-left"></span>
+      <span class="name" id="label-left">Izquierda</span>
+      <span class="value" id="count-left">0</span>
+    </div>
+    <div class="bin-row">
+      <span class="dot dot-center"></span>
+      <span class="name" id="label-center">Centro</span>
+      <span class="value" id="count-center">0</span>
+    </div>
+    <div class="bin-row">
+      <span class="dot dot-right"></span>
+      <span class="name" id="label-right">Derecha</span>
+      <span class="value" id="count-right">0</span>
+    </div>
+
+    <div class="section-title">Cola de entrada (<span id="queue-length">0</span> esperando)</div>
+    <div class="btn-row">
+      <button class="cap-btn cap-btn--red" data-add-color="red">+ Roja</button>
+      <button class="cap-btn cap-btn--green" data-add-color="green">+ Verde</button>
+      <button class="cap-btn cap-btn--blue" data-add-color="blue">+ Azul</button>
+    </div>
+
+    <div class="section-title">Secuencia rápida</div>
+    <div class="seq-row">
+      <input id="sequence-input" type="text" placeholder="rojo,verde,azul,rojo" />
+      <button id="sequence-add">Agregar</button>
+    </div>
+
+    <label class="toggle-row">
+      <input type="checkbox" id="auto-toggle" checked />
+      Alimentación automática
+    </label>
+  </div>
+
+  <div class="hint">Click + arrastrar: orbitar · Scroll: zoom</div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
