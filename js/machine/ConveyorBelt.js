@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { COLORS_SCENE, BELT } from '../config/config.js';
+import { COLORS_SCENE, BELT, CAP, SPEED } from '../config/config.js';
 import { Motor } from './Motor.js';
+import { createBeltTexture } from '../utils/beltTexture.js';
 
 // =====================================================================
 // ConveyorBelt
@@ -22,8 +23,13 @@ export class ConveyorBelt {
     this.group = new THREE.Group();
 
     // --- superficie de la cinta ---
+    // Textura de rayas diagonales sutiles, animada en update(): sin esto
+    // la cinta era un color sólido y a velocidad baja no se notaba que
+    // se estuviera moviendo si no se miraba el rodillo del motor.
+    this.beltTexture = createBeltTexture();
+    this.beltTexture.repeat.set(Math.max(1, Math.round(length / 0.45)), 1);
     const beltGeo = new THREE.BoxGeometry(length, BELT.thickness, BELT.width);
-    const beltMat = new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0.05 });
+    const beltMat = new THREE.MeshStandardMaterial({ color, map: this.beltTexture, roughness: 0.85, metalness: 0.05 });
     const beltMesh = new THREE.Mesh(beltGeo, beltMat);
     beltMesh.position.y = legHeight;
     beltMesh.castShadow = true;
@@ -70,5 +76,10 @@ export class ConveyorBelt {
 
   update(dt) {
     if (this.motor) this.motor.update(dt);
+    // Offset negativo = las rayas "avanzan" en el sentido +X, mismo
+    // sentido en el que se mueven las tapitas. Escala arbitraria (0.6)
+    // elegida a ojo para que el patrón se vea acompañando la velocidad
+    // real sin quedar ni demasiado lento ni vertiginoso.
+    this.beltTexture.offset.x -= CAP.speed * SPEED.multiplier * dt * 0.6;
   }
 }

@@ -80,6 +80,7 @@ const hudCounts = {
   center: document.getElementById('count-center'),
   right: document.getElementById('count-right')
 };
+const countTotalEl = document.getElementById('count-total');
 
 const laneLabel = {};
 for (const def of Object.values(CAP_TYPES)) laneLabel[def.lane] = def.label;
@@ -90,9 +91,13 @@ document.getElementById('label-right').textContent = laneLabel.right ?? 'Derecha
 const queueLengthEl = document.getElementById('queue-length');
 
 function updateHUD() {
-  hudCounts.left.textContent = machine.bins.left.count;
-  hudCounts.center.textContent = machine.bins.center.count;
-  hudCounts.right.textContent = machine.bins.right.count;
+  const l = machine.bins.left.count;
+  const c = machine.bins.center.count;
+  const r = machine.bins.right.count;
+  hudCounts.left.textContent = l;
+  hudCounts.center.textContent = c;
+  hudCounts.right.textContent = r;
+  countTotalEl.textContent = l + c + r;
   queueLengthEl.textContent = capSystem.getQueueLength();
 }
 

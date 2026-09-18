@@ -5,13 +5,18 @@ import * as THREE from 'three';
 // Recipiente de destino. Recibe un color (hex) para pintar una franja
 // identificadora y lleva su propio contador de tapitas recibidas, útil
 // para el HUD y para futuras métricas (marketplace / analytics).
+//
+// Las tapitas NO se guardan físicamente: apilarlas para siempre iba a
+// terminar asomando por encima del borde del recipiente en cualquier
+// sesión larga con alimentación automática. Cada tapita cae centrada
+// (con una pequeña variación al azar, ver CapSystem._beginFalling) y al
+// tocar el fondo se descuenta de la escena — lo que queda es el conteo
+// y un pulso de luz en la franja del recipiente, como confirmación.
 // =====================================================================
 export class Bin {
   constructor(hexColor, label) {
     this.label = label;
     this.count = 0;
-    this.storedCaps = []; // referencias a las tapitas ya depositadas (persisten)
-    this._nextSlot = 0;   // índice monotónico para reservar lugar antes de caer
     this.group = new THREE.Group();
 
     const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a2e34, metalness: 0.3, roughness: 0.6 });
@@ -27,41 +32,45 @@ export class Bin {
     base.position.y = 0.03;
     this.group.add(base);
 
+    const BASE_GLOW = 0.25;
+    this._baseGlow = BASE_GLOW;
+    this._glow = BASE_GLOW;
     const stripeGeo = new THREE.CylinderGeometry(0.565, 0.565, 0.14, 24, 1, true);
-    const stripeMat = new THREE.MeshStandardMaterial({
-      color: hexColor, emissive: hexColor, emissiveIntensity: 0.25, side: THREE.DoubleSide
+    this.stripeMat = new THREE.MeshStandardMaterial({
+      color: hexColor, emissive: hexColor, emissiveIntensity: BASE_GLOW, side: THREE.DoubleSide
     });
-    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+    const stripe = new THREE.Mesh(stripeGeo, this.stripeMat);
     stripe.position.y = 0.75;
     this.group.add(stripe);
   }
 
-  /** Reserva un índice de apilado (llamar al iniciar la caída, no al depositar). */
-  reserveSlot() {
-    return this._nextSlot++;
+  /** Pulso breve de luz en la franja: confirma que acaba de entrar una tapita. */
+  flash() {
+    this._glow = 1.15;
+  }
+
+  update(dt) {
+    this._glow = Math.max(this._baseGlow, this._glow - dt * 1.8);
+    this.stripeMat.emissiveIntensity = this._glow;
   }
 
   /**
-   * Deposita físicamente una tapita ya caída: la reparenta al grupo del
-   * recipiente (queda fija ahí para siempre) en la posición local dada
-   * por el sistema de apilado, incrementa el conteo y la guarda.
+   * Recibe una tapita que acaba de caer: suma al contador, dispara el
+   * pulso de luz y la saca de la escena. La geometría/material de la
+   * tapita son compartidos entre todas (ver entities/Cap.js), así que
+   * cap.dispose() no libera nada global — solo desengancha la malla.
    */
-  depositCap(cap, localOffset) {
-    cap.mesh.position.set(localOffset.x, localOffset.y, localOffset.z);
-    cap.mesh.rotation.set(0, localOffset.rotY, 0);
-    this.group.add(cap.mesh);
-    this.storedCaps.push(cap);
+  receive(cap) {
     this.count++;
+    this.flash();
+    if (cap.mesh.parent) cap.mesh.parent.remove(cap.mesh);
+    cap.dispose();
   }
 
-  /** Vacía el recipiente: libera geometrías/materiales de cada tapita depositada y resetea contadores. */
+  /** Vacía el recipiente (usado por "Reiniciar"): solo resetea contador y brillo. */
   reset() {
-    for (const cap of this.storedCaps) {
-      this.group.remove(cap.mesh);
-      cap.dispose();
-    }
-    this.storedCaps = [];
     this.count = 0;
-    this._nextSlot = 0;
+    this._glow = this._baseGlow;
+    this.stripeMat.emissiveIntensity = this._baseGlow;
   }
 }

@@ -4,6 +4,41 @@ import { CAP_STATES } from '../config/states.js';
 
 let nextId = 1;
 
+// Geometría y material se comparten entre TODAS las tapitas: la forma es
+// siempre la misma (CAP.radius/CAP.height son constantes), y el color es
+// el único dato que cambia — así que se cachea una geometría única y un
+// material por color, en vez de fabricar 4 objetos WebGL nuevos por cada
+// tapita. Con la simulación corriendo indefinidamente (alimentación
+// automática, más ahora que cada tapita se crea Y se descarta al caer)
+// esto evita basura constante de GPU/CPU sin ningún cambio visual.
+let sharedGeometries = null;
+function getSharedGeometries() {
+  if (!sharedGeometries) {
+    const R = CAP.radius, H = CAP.height;
+    sharedGeometries = {
+      body: new THREE.CylinderGeometry(R, R, H, 32),
+      rim: new THREE.CylinderGeometry(R * 1.06, R * 1.06, H * 0.32, 32),
+      topDetail: new THREE.CylinderGeometry(R * 0.72, R * 0.72, H * 0.12, 32)
+    };
+  }
+  return sharedGeometries;
+}
+
+const materialCache = new Map(); // hex -> MeshPhysicalMaterial
+function getSharedMaterial(hex) {
+  if (!materialCache.has(hex)) {
+    materialCache.set(hex, new THREE.MeshPhysicalMaterial({
+      color: hex,
+      roughness: 0.32,
+      metalness: 0.02,
+      clearcoat: 0.85,
+      clearcoatRoughness: 0.18,
+      reflectivity: 0.4
+    }));
+  }
+  return materialCache.get(hex);
+}
+
 // =====================================================================
 // Cap (tapita)
 // Entidad con apariencia de tapita plástica real (disco + reborde, con
@@ -35,35 +70,22 @@ export class Cap {
 
   _buildMesh(hex) {
     const group = new THREE.Group();
-    const R = CAP.radius;
     const H = CAP.height;
-
-    // Material plástico: algo de "clearcoat" para dar el reflejo típico
-    // de una tapita de botella sin llegar a verse metálico.
-    const plasticMat = new THREE.MeshPhysicalMaterial({
-      color: hex,
-      roughness: 0.32,
-      metalness: 0.02,
-      clearcoat: 0.85,
-      clearcoatRoughness: 0.18,
-      reflectivity: 0.4
-    });
+    const geo = getSharedGeometries();
+    const mat = getSharedMaterial(hex);
 
     // Cuerpo principal (disco de poca altura)
-    const bodyGeo = new THREE.CylinderGeometry(R, R, H, 32);
-    const body = new THREE.Mesh(bodyGeo, plasticMat);
+    const body = new THREE.Mesh(geo.body, mat);
     group.add(body);
 
     // Pequeño reborde inferior (el "faldón" característico de una tapita)
-    const rimGeo = new THREE.CylinderGeometry(R * 1.06, R * 1.06, H * 0.32, 32);
-    const rim = new THREE.Mesh(rimGeo, plasticMat);
+    const rim = new THREE.Mesh(geo.rim, mat);
     rim.position.y = -H / 2 + (H * 0.32) / 2 - 0.002;
     group.add(rim);
 
     // Marca sutil en la tapa superior (círculo levemente hundido, solo
     // detalle visual para lectura del color desde arriba)
-    const topDetailGeo = new THREE.CylinderGeometry(R * 0.72, R * 0.72, H * 0.12, 32);
-    const topDetail = new THREE.Mesh(topDetailGeo, plasticMat);
+    const topDetail = new THREE.Mesh(geo.topDetail, mat);
     topDetail.position.y = H / 2 - 0.01;
     group.add(topDetail);
 
@@ -76,10 +98,12 @@ export class Cap {
     this.mesh.rotation.set(this.rotX, this.rotY, this.rotZ);
   }
 
-  dispose() {
-    this.mesh.traverse(obj => {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
-    });
-  }
+  /**
+   * No hay nada que liberar por tapita: la geometría y el material son
+   * compartidos globalmente (ver caché arriba) y nunca se destruyen
+   * mientras la página esté abierta. Se deja el método (en vez de sacarlo
+   * de golpe) porque Bin.receive() y CapSystem.resetAll() lo llaman como
+   * parte del contrato normal de "esta tapita ya no existe".
+   */
+  dispose() {}
 }

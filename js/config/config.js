@@ -124,11 +124,10 @@ export const FALL = {
   tumbleSpeed: 7       // velocidad de rotación al caer (rad/seg)
 };
 
-// Apilado dentro de los recipientes (fase IN_CONTAINER).
+// Punto de caída dentro del recipiente (fase IN_CONTAINER, ver CapSystem).
 export const CONTAINER = {
-  innerRadius: 0.47,           // radio útil interior del recipiente
-  layerHeight: CAP.height * 0.85, // alto de cada "capa" de tapitas apiladas
-  baseY: 0.08                  // altura del piso interior del recipiente
+  innerRadius: 0.47,  // radio útil interior del recipiente (limita la variación al azar de la caída)
+  baseY: 0.08         // altura del piso interior del recipiente
 };
 
 // Separación mínima que debe existir entre la tapita anterior y el

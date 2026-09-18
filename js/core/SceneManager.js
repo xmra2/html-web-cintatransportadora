@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { COLORS_SCENE } from '../config/config.js';
+import { createFloorTexture } from '../utils/floorTexture.js';
 
 // =====================================================================
 // SceneManager
@@ -12,6 +13,14 @@ export class SceneManager {
     this.canvas = canvas;
     this.clock = new THREE.Clock();
     this.updateCallbacks = [];
+    // Ancho del frustum ortográfico: única fuente de verdad, usada tanto
+    // al armar la cámara como al recalcularla en cada resize. El sistema
+    // completo (cinta principal a -7.6 hasta los recipientes a ~7.9) es
+    // bastante más ancho que cuando esto se fijó en 11 — con eso, los
+    // recipientes de la derecha quedaban pegados al borde o cortados por
+    // default. 15 da margen para ver todo el recorrido sin tener que
+    // hacer zoom manual.
+    this.frustumSize = 15;
 
     this._initRenderer();
     this._initScene();
@@ -34,20 +43,20 @@ export class SceneManager {
   _initScene() {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(COLORS_SCENE.background);
-    this.scene.fog = new THREE.Fog(COLORS_SCENE.background, 18, 34);
+    this.scene.fog = new THREE.Fog(COLORS_SCENE.background, 18, 40);
   }
 
   _initCamera() {
     const aspect = window.innerWidth / window.innerHeight;
-    const frustumSize = 11;
     this.camera = new THREE.OrthographicCamera(
-      -frustumSize * aspect / 2, frustumSize * aspect / 2,
-      frustumSize / 2, -frustumSize / 2,
+      -this.frustumSize * aspect / 2, this.frustumSize * aspect / 2,
+      this.frustumSize / 2, -this.frustumSize / 2,
       0.1, 100
     );
-    // Vista isométrica clásica, desde arriba, mirando hacia el origen.
+    // Vista isométrica clásica, desde arriba, mirando hacia el punto que
+    // controls.target también usa (ver _initControls) — mismo centro.
     this.camera.position.set(10, 11, 10);
-    this.camera.lookAt(0, 0.5, 0);
+    this.camera.lookAt(1, 0.5, 0);
   }
 
   _initLights() {
@@ -58,10 +67,15 @@ export class SceneManager {
     sun.position.set(8, 12, 6);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -12;
-    sun.shadow.camera.right = 12;
-    sun.shadow.camera.top = 12;
-    sun.shadow.camera.bottom = -12;
+    // El sistema completo (cinta principal -> recipientes) mide bastante
+    // más de ancho que la caja de sombra original (±12): con eso, la
+    // punta de la cinta principal y/o los recipientes quedaban sin
+    // sombra o con el corte visible. ±17 cubre todo el recorrido con
+    // margen.
+    sun.shadow.camera.left = -17;
+    sun.shadow.camera.right = 17;
+    sun.shadow.camera.top = 17;
+    sun.shadow.camera.bottom = -17;
     this.scene.add(sun);
 
     const fill = new THREE.DirectionalLight(0x88aaff, 0.25);
@@ -71,7 +85,7 @@ export class SceneManager {
 
   _initGround() {
     const geo = new THREE.PlaneGeometry(60, 60);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x14171c, roughness: 1 });
+    const mat = new THREE.MeshStandardMaterial({ color: 0x14171c, roughness: 1, map: createFloorTexture() });
     const ground = new THREE.Mesh(geo, mat);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
@@ -89,16 +103,18 @@ export class SceneManager {
     this.controls.minZoom = 0.6;
     this.controls.maxZoom = 2.4;
     this.controls.maxPolarAngle = Math.PI * 0.49; // no dejar ir bajo el piso
-    this.controls.target.set(-1, 0.5, 0);
+    // Recentrado: antes apuntaba a x=-1 (centro de cuando el sistema
+    // terminaba en los recipientes a x≈4.9); ahora el recorrido llega
+    // hasta x≈7.9, así que el centro real quedó más hacia la derecha.
+    this.controls.target.set(1, 0.5, 0);
   }
 
   _onResize() {
     const aspect = window.innerWidth / window.innerHeight;
-    const frustumSize = 11;
-    this.camera.left = -frustumSize * aspect / 2;
-    this.camera.right = frustumSize * aspect / 2;
-    this.camera.top = frustumSize / 2;
-    this.camera.bottom = -frustumSize / 2;
+    this.camera.left = -this.frustumSize * aspect / 2;
+    this.camera.right = this.frustumSize * aspect / 2;
+    this.camera.top = this.frustumSize / 2;
+    this.camera.bottom = -this.frustumSize / 2;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }

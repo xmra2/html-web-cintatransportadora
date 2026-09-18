@@ -172,6 +172,14 @@ html, body {
 .bin-row .name { flex: 1; color: #c4cad2; font-weight: 500; }
 .bin-row .value { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #ffffff; font-size: 14px; }
 
+.bin-row--total {
+  margin-top: 2px;
+  border-top: 1px solid #3a4048;
+  font-weight: 700;
+}
+.bin-row--total .name { color: #9aa1a8; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.5px; }
+.bin-row--total .value { color: #ffb020; }
+
 .ctrl-row {
   display: flex;
   gap: 6px;

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { BELT, LANES, LANE_OFFSET, BIN_X, CAP_TYPES, COLORS_SCENE } from '../config/config.js';
 import { ConveyorBelt } from './ConveyorBelt.js';
 import { MiniTunnel } from './MiniTunnel.js';
@@ -74,29 +75,29 @@ export class Machine {
     const legMat = new THREE.MeshStandardMaterial({ color: COLORS_SCENE.frame, metalness: 0.7, roughness: 0.4 });
     const edgeMat = new THREE.MeshStandardMaterial({ color: COLORS_SCENE.beltEdge, metalness: 0.6, roughness: 0.4 });
 
+    const UP = new THREE.Vector3(0, 1, 0);
+
     for (const lane of Object.keys(LANES)) {
       const targetZ = LANES[lane].z;
       const group = new THREE.Group();
-
-      // Las TRES curvas arrancan en el mismo punto (t=0 -> z=0 para
-      // cualquier targetZ): recién arrancan a divergir de a poco. El
-      // borde INTERNO (el que mira hacia el centro) de 'left' y de
-      // 'right' avanza hacia z=0 a medida que su carril se abre, y en
-      // algún punto termina cruzando el borde del carril 'center' (que
-      // es fijo, en ±0.45) — ahí es donde se forma la "X" de bordes
-      // grises. La solución: 'left' y 'right' solo dibujan su borde
-      // EXTERNO (el que de verdad hace falta, para no caerse por afuera
-      // del abanico); el borde interno lo cubre de sobra el borde fijo
-      // de 'center'. 'center' sigue dibujando los dos, como siempre.
       const skipSide = lane === 'left' ? -1 : lane === 'right' ? 1 : null;
 
-      // Puntos muestreados a lo largo de la curva ('center' da targetZ=0,
-      // así que le sale una recta sin necesitar un caso aparte).
       const pts = [];
       for (let i = 0; i <= SEGMENTS; i++) {
         const t = i / SEGMENTS;
         pts.push({ x: startX + (endX - startX) * t, z: laneCurveOffset(t, targetZ) });
       }
+
+      // En vez de crear un Mesh por segmento (28 tramos x cinta + bordes
+      // + patas, por carril, son un montón de objetos 3D estáticos que
+      // nunca cambian), se arma cada trocito de geometría ya "horneado"
+      // con su posición/rotación aplicada a los vértices, y se fusiona
+      // todo en UNA sola malla por material al final. Misma forma exacta,
+      // muchísimas menos llamadas de dibujo (de ~300 mallas totales acá
+      // a 9: cinta + bordes + patas, por cada uno de los 3 carriles).
+      const beltGeos = [];
+      const edgeGeos = [];
+      const legGeos = [];
 
       for (let i = 0; i < SEGMENTS; i++) {
         const a = pts[i], b = pts[i + 1];
@@ -104,46 +105,49 @@ export class Machine {
         const segLength = Math.hypot(dx, dz) * 1.03; // leve solape: sin costuras entre segmentos
         const angle = Math.atan2(-dz, dx);
         const midX = (a.x + b.x) / 2, midZ = (a.z + b.z) / 2;
+        const rot = new THREE.Quaternion().setFromAxisAngle(UP, angle);
 
-        const seg = new THREE.Mesh(new THREE.BoxGeometry(segLength, BELT.thickness, BELT.width), beltMat);
-        seg.position.set(midX, BELT.y, midZ);
-        seg.rotation.y = angle;
-        seg.castShadow = true;
-        seg.receiveShadow = true;
-        group.add(seg);
+        const beltGeo = new THREE.BoxGeometry(segLength, BELT.thickness, BELT.width);
+        beltGeo.applyMatrix4(new THREE.Matrix4().compose(
+          new THREE.Vector3(midX, BELT.y, midZ), rot, new THREE.Vector3(1, 1, 1)
+        ));
+        beltGeos.push(beltGeo);
 
-        // Bordes elevados sutiles a cada lado, igual que en las cintas
-        // rectas (ConveyorBelt): acompañan la curva segmento a segmento,
-        // perpendiculares a la dirección local en cada tramo.
         const perpX = Math.sin(angle) * (BELT.width / 2);
         const perpZ = Math.cos(angle) * (BELT.width / 2);
         for (const side of [1, -1]) {
           if (side === skipSide) continue;
-          const edge = new THREE.Mesh(new THREE.BoxGeometry(segLength, 0.06, 0.05), edgeMat);
-          edge.position.set(
-            midX + perpX * side,
-            BELT.y + BELT.thickness / 2 + 0.03,
-            midZ + perpZ * side
-          );
-          edge.rotation.y = angle;
-          edge.castShadow = true;
-          group.add(edge);
+          const edgeGeo = new THREE.BoxGeometry(segLength, 0.06, 0.05);
+          edgeGeo.applyMatrix4(new THREE.Matrix4().compose(
+            new THREE.Vector3(midX + perpX * side, BELT.y + BELT.thickness / 2 + 0.03, midZ + perpZ * side),
+            rot, new THREE.Vector3(1, 1, 1)
+          ));
+          edgeGeos.push(edgeGeo);
         }
 
-        // Patas de apoyo cada pocos segmentos, perpendiculares a la
-        // curva en ese punto (para que se vean bien plantadas, no solo
-        // rectas contra el eje X global).
         if (i % 7 === 3) {
           for (const side of [1, -1]) {
             const offX = Math.sin(angle) * (BELT.width / 2 - 0.05) * side;
             const offZ = Math.cos(angle) * (BELT.width / 2 - 0.05) * side;
-            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.09, BELT.y, 0.09), legMat);
-            leg.position.set(midX + offX, BELT.y / 2, midZ + offZ);
-            leg.castShadow = true;
-            group.add(leg);
+            const legGeo = new THREE.BoxGeometry(0.09, BELT.y, 0.09);
+            legGeo.applyMatrix4(new THREE.Matrix4().makeTranslation(midX + offX, BELT.y / 2, midZ + offZ));
+            legGeos.push(legGeo);
           }
         }
       }
+
+      const beltMesh = new THREE.Mesh(mergeGeometries(beltGeos), beltMat);
+      beltMesh.castShadow = true;
+      beltMesh.receiveShadow = true;
+      group.add(beltMesh);
+
+      const edgeMesh = new THREE.Mesh(mergeGeometries(edgeGeos), edgeMat);
+      edgeMesh.castShadow = true;
+      group.add(edgeMesh);
+
+      const legMesh = new THREE.Mesh(mergeGeometries(legGeos), legMat);
+      legMesh.castShadow = true;
+      group.add(legMesh);
 
       this.group.add(group);
       this.bridgeBelts[lane] = group;
@@ -192,6 +196,7 @@ export class Machine {
       bin.group.position.set(BIN_X + 0.5, 0, z);
       this.group.add(bin.group);
       this.bins[lane] = bin;
+      this.updatables.push(bin);
     }
   }
 

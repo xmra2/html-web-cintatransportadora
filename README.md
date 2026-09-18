@@ -16,7 +16,7 @@ Abrir `index.html` en un navegador moderno (o servirlo con cualquier servidor es
 4. **Sensor de color** — detecta el color de cada tapita al pasar.
 5. **Barras desviadoras** — accionadas por servomotor, giran ~45° y empujan físicamente la tapita hacia su carril correspondiente (nunca se teletransporta ni desaparece).
 6. **Cintas secundarias** — una por color, llevan la tapita hasta su recipiente.
-7. **Recipientes** — acumulan las tapitas caídas de forma persistente y visible.
+7. **Recipientes** — cada tapita que cae se contabiliza en su recipiente correspondiente (cae centrada, con un pulso de luz como confirmación) y luego se descarta: no se apilan de forma indefinida.
 
 ## ✨ Características
 

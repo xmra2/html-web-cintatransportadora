@@ -1,10 +1,9 @@
 import {
   CAP, CAP_TYPES, LANES, BELT, TUNNEL, SENSOR_X, DEFLECT,
-  LEAVE_DISTANCE, FALL, FEED_GATE_GAP, BAR_COLLISION_RADIUS, BAR_GATE_X, SPEED
+  LEAVE_DISTANCE, FALL, FEED_GATE_GAP, BAR_COLLISION_RADIUS, BAR_GATE_X, SPEED, CONTAINER
 } from '../config/config.js';
 import { CAP_STATES as S } from '../config/states.js';
 import { Cap } from '../entities/Cap.js';
-import { computeStackOffset } from '../utils/stacking.js';
 import { laneCurveOffset } from '../utils/laneCurve.js';
 import { capsuleBoundaryZ } from '../utils/barCollision.js';
 
@@ -298,18 +297,27 @@ export class CapSystem {
     }
   }
 
+  /**
+   * La tapita cae CENTRADA en su recipiente (con una pequeña variación
+   * al azar dentro de un radio chico, para que no caigan todas en el
+   * mismo pixel exacto — sigue siendo, a simple vista, "al centro").
+   * Ya no hace falta ningún cálculo de capa/índice: la tapita se borra
+   * apenas toca el fondo (ver Bin.receive), así que nunca hay que
+   * acomodarla respecto de las que cayeron antes.
+   */
   _beginFalling(cap) {
     cap.state = S.FALLING;
     cap.fallVelocityY = 0;
     const bin = this.bins[cap.lane];
-    cap._stackIndex = bin.reserveSlot();
-    const localOffset = computeStackOffset(cap._stackIndex);
-    cap._stackOffsetLocal = localOffset; // coordenadas locales al grupo del recipiente
+
+    const jitterR = CONTAINER.innerRadius * 0.3 * Math.sqrt(Math.random());
+    const jitterA = Math.random() * Math.PI * 2;
+
     cap._fallFrom = { x: cap.x, y: cap.y, z: cap.z };
     cap._fallTarget = {
-      x: bin.group.position.x + localOffset.x,
-      y: bin.group.position.y + localOffset.y,
-      z: bin.group.position.z + localOffset.z
+      x: bin.group.position.x + Math.cos(jitterA) * jitterR,
+      y: bin.group.position.y + CONTAINER.baseY,
+      z: bin.group.position.z + Math.sin(jitterA) * jitterR
     };
   }
 
@@ -326,8 +334,7 @@ export class CapSystem {
     cap.z = fz + (target.z - fz) * progress;
 
     if (cap.y <= target.y) {
-      const bin = this.bins[cap.lane];
-      bin.depositCap(cap, cap._stackOffsetLocal);
+      this.bins[cap.lane].receive(cap); // suma al contador, pulso de luz, y la borra
       cap.state = S.IN_CONTAINER;
     }
   }
