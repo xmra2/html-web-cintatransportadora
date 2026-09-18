@@ -83,10 +83,19 @@ const hudCounts = {
 const countTotalEl = document.getElementById('count-total');
 
 const laneLabel = {};
-for (const def of Object.values(CAP_TYPES)) laneLabel[def.lane] = def.label;
+const laneHex = {};
+for (const def of Object.values(CAP_TYPES)) {
+  laneLabel[def.lane] = def.label;
+  laneHex[def.lane] = def.hex;
+}
 document.getElementById('label-left').textContent = laneLabel.left ?? 'Izquierda';
 document.getElementById('label-center').textContent = laneLabel.center ?? 'Centro';
 document.getElementById('label-right').textContent = laneLabel.right ?? 'Derecha';
+
+const hexToCss = (hex) => `#${hex.toString(16).padStart(6, '0')}`;
+document.getElementById('dot-left').style.background = hexToCss(laneHex.left ?? 0x888888);
+document.getElementById('dot-center').style.background = hexToCss(laneHex.center ?? 0x888888);
+document.getElementById('dot-right').style.background = hexToCss(laneHex.right ?? 0x888888);
 
 const queueLengthEl = document.getElementById('queue-length');
 

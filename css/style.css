@@ -164,10 +164,10 @@ html, body {
   display: inline-block;
   margin-right: 8px;
 }
-
-.dot-left   { background: #d93025; }
-.dot-center { background: #1e8e3e; }
-.dot-right  { background: #1a73e8; }
+/* El color de cada punto se asigna dinámicamente en main.js, a partir
+   de CAP_TYPES (la única fuente de verdad de qué color va a qué
+   carril) — así nunca puede quedar desalineado con la etiqueta como
+   pasaba antes (colores fijos acá, pero la etiqueta armada en JS). */
 
 .bin-row .name { flex: 1; color: #c4cad2; font-weight: 500; }
 .bin-row .value { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #ffffff; font-size: 14px; }
