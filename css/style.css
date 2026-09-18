@@ -328,6 +328,14 @@ html, body {
 .cap-btn:hover { opacity: 1; transform: translateY(-1px); }
 .cap-btn:active { transform: translateY(0); }
 
+.cap-btn:disabled,
+#sequence-add:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+.cap-btn:disabled:hover { transform: none; }
+
 .cap-btn--red   { background: #d93025; }
 .cap-btn--green { background: #1e8e3e; }
 .cap-btn--blue  { background: #1a73e8; }

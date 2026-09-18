@@ -98,6 +98,8 @@ document.getElementById('dot-center').style.background = hexToCss(laneHex.center
 document.getElementById('dot-right').style.background = hexToCss(laneHex.right ?? 0x888888);
 
 const queueLengthEl = document.getElementById('queue-length');
+const queueMaxEl = document.getElementById('queue-max');
+const addColorBtns = document.querySelectorAll('[data-add-color]');
 
 function updateHUD() {
   const l = machine.bins.left.count;
@@ -107,11 +109,20 @@ function updateHUD() {
   hudCounts.center.textContent = c;
   hudCounts.right.textContent = r;
   countTotalEl.textContent = l + c + r;
-  queueLengthEl.textContent = capSystem.getQueueLength();
+
+  const { count, max } = capSystem.getQueueCapacity();
+  queueLengthEl.textContent = count;
+  queueMaxEl.textContent = max;
+  // Los botones manuales solo se deshabilitan en el tope TOTAL (8): a
+  // diferencia de la automática, con ellos siempre se puede llegar
+  // hasta ahí, esté o no prendido el modo automático.
+  const full = count >= max;
+  addColorBtns.forEach(btn => btn.disabled = full);
+  sequenceBtn.disabled = full;
 }
 
 // --- Cola de entrada manual: botones "+ Roja / + Verde / + Azul" ---
-document.querySelectorAll('[data-add-color]').forEach(btn => {
+addColorBtns.forEach(btn => {
   btn.addEventListener('click', () => capSystem.enqueue(btn.dataset.addColor));
 });
 
@@ -136,7 +147,7 @@ const autoToggle = document.getElementById('auto-toggle');
 autoToggle.addEventListener('change', () => capSystem.setAutoSpawn(autoToggle.checked));
 
 // --- Panel principal: colapsar/expandir (hamburguesa, para celular) ---
-// En desktop el panel arranca siempre abierto. En pantallas chicas arranca
+// En desktop el panel siempre está abierto. En pantallas chicas arranca
 // cerrado (solo título + botón) y el botón lo expande/contrae.
 const hudPanel = document.getElementById('hud-panel');
 const hudToggleBtn = document.getElementById('hud-toggle');
@@ -147,16 +158,27 @@ function setHudCollapsed(collapsed) {
   hudPanel.classList.toggle('is-collapsed', collapsed);
   hudToggleBtn.setAttribute('aria-expanded', String(!collapsed));
 }
-setHudCollapsed(window.innerWidth <= MOBILE_BREAKPOINT);
+
+// isMobile se recalcula en cada resize; solo forzamos el estado del
+// panel cuando el ancho CRUZA el punto de quiebre (pasa de chica a
+// grande o de grande a chica), no en cada pixel de resize. Así, en
+// pantalla grande el panel siempre queda desplegado — antes, si se
+// achicaba la ventana y se volvía a agrandar, se quedaba colapsado
+// para siempre porque el estado inicial solo se fijaba una vez al
+// cargar la página.
+let isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+setHudCollapsed(isMobile);
+
+window.addEventListener('resize', () => {
+  const nowMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+  if (nowMobile === isMobile) return; // sigue del mismo lado del quiebre: no tocar nada
+  isMobile = nowMobile;
+  setHudCollapsed(isMobile);
+});
 
 hudToggleBtn.addEventListener('click', () => {
   setHudCollapsed(!hudPanel.classList.contains('is-collapsed'));
 });
-
-// Si el usuario rota el celular o cambia de ventana a un tamaño distinto,
-// no lo forzamos a un estado: solo fijamos el estado inicial una vez.
-// (evita "pelearle" al usuario si lo abrió a mano y luego redimensiona)
-
 // --- Secciones plegables genéricas (Velocidad, Cola de entrada) -------
 function setupCollapsible(headerId, bodyId, { startOpen = true } = {}) {
   const header = document.getElementById(headerId);

@@ -7,7 +7,14 @@ import { Cap } from '../entities/Cap.js';
 import { laneCurveOffset } from '../utils/laneCurve.js';
 import { capsuleBoundaryZ } from '../utils/barCollision.js';
 
-const MAX_QUEUE = 5;          // tope de tapitas esperando en la cola visual
+// Tope de la franja AUTOMÁTICA: la alimentación automática nunca carga,
+// por sí sola, más de 5 tapitas esperando (esto es lo "precargado").
+const MAX_QUEUE_AUTO = 5;
+// Tope TOTAL absoluto: con los botones manuales (+Roja/+Verde/+Azul o la
+// secuencia rápida) se puede sumar hasta 3 tapitas MÁS por encima de las
+// 5 automáticas, sin importar si el modo automático está prendido o no.
+// 5 (automáticas) + 3 (manuales de más) = 8 como máximo en todo momento.
+const MAX_QUEUE_TOTAL = 8;
 const WAITING_SLOT_GAP = 0.75; // separación entre tapitas en la cola de espera
 
 // =====================================================================
@@ -56,11 +63,22 @@ export class CapSystem {
     return CAP.speed * SPEED.multiplier;
   }
 
-  /** Encola manualmente una tapita del color indicado ('red'|'green'|'blue'). */
-  enqueue(typeKey) {
+  /**
+   * Encola una tapita del color indicado ('red'|'green'|'blue').
+   * `source` distingue quién la pidió:
+   *   - 'manual': un click en +Roja/+Verde/+Azul o la secuencia rápida.
+   *   - 'auto':   la alimentación automática.
+   * La automática nunca puede empujar la cola más allá de las 5 propias
+   * (MAX_QUEUE_AUTO); las 3 de margen hasta llegar a 8 (MAX_QUEUE_TOTAL)
+   * quedan reservadas para cuando el usuario las pide a mano, aunque el
+   * modo automático esté prendido y ya haya 5 cargadas.
+   */
+  enqueue(typeKey, source = 'manual') {
     if (!CAP_TYPES[typeKey]) return;
-    if (this._waitingCount() >= MAX_QUEUE) return; // cola llena, se ignora
+    if (this._waitingCount() >= MAX_QUEUE_TOTAL) return; // tope duro absoluto: 8
+    if (source === 'auto' && this._autoWaitingCount() >= MAX_QUEUE_AUTO) return;
     const cap = new Cap(typeKey, CAP_TYPES[typeKey]);
+    cap.source = source;
     cap.state = S.WAITING;
     cap.y = BELT.y + CAP.height / 2 + 0.02;
     this.scene.add(cap.mesh);
@@ -73,6 +91,11 @@ export class CapSystem {
 
   getQueueLength() {
     return this._waitingCount();
+  }
+
+  /** Info de capacidad de la cola, para mostrar "N/8" en el HUD. */
+  getQueueCapacity() {
+    return { count: this._waitingCount(), max: MAX_QUEUE_TOTAL };
   }
 
   /**
@@ -96,6 +119,13 @@ export class CapSystem {
   _waitingCount() {
     let n = 0;
     for (const c of this.caps) if (c.state === S.WAITING) n++;
+    return n;
+  }
+
+  /** Cuántas tapitas esperando fueron cargadas por la alimentación automática. */
+  _autoWaitingCount() {
+    let n = 0;
+    for (const c of this.caps) if (c.state === S.WAITING && c.source === 'auto') n++;
     return n;
   }
 
@@ -154,8 +184,13 @@ export class CapSystem {
   _updateAutoSpawn(dt) {
     if (!this.autoSpawnEnabled) return;
     this.spawnCooldown -= dt;
-    if (this.spawnCooldown <= 0 && this._waitingCount() < MAX_QUEUE) {
-      this.enqueue(this._randomType());
+    // Ojo: el tope acá es el de la franja automática (5), no el total
+    // (8) — así nunca "usa" el margen manual por su cuenta. Si ya hay
+    // 5 automáticas esperando, sencillamente no suma más (aunque el
+    // usuario haya agregado manuales de más, esas no cuentan para este
+    // tope) hasta que se libere un lugar.
+    if (this.spawnCooldown <= 0 && this._autoWaitingCount() < MAX_QUEUE_AUTO) {
+      this.enqueue(this._randomType(), 'auto');
       this.spawnCooldown = (FEED_GATE_GAP / this._v) * (0.8 + Math.random() * 0.6);
     }
   }
