@@ -181,7 +181,7 @@ export class Machine {
     for (const lane of Object.keys(LANES)) {
       const z = LANES[lane].z;
 
-      const belt = new ConveyorBelt({ length, motorAtEnd: true, color: 0x1c1f24 });
+      const belt = new ConveyorBelt({ length, motorAtEnd: true, showMotor: false, color: 0x1c1f24 });
       belt.group.position.set(BELT.secondaryStartX + length / 2, 0, z);
       this.group.add(belt.group);
       this.updatables.push(belt);

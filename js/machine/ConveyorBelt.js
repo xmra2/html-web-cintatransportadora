@@ -13,8 +13,11 @@ export class ConveyorBelt {
    * @param {number} length  largo de la cinta
    * @param {number} legHeight altura de las patas hasta la superficie
    * @param {number} motorAtEnd si true, el motor va al extremo +x local; si false, al extremo -x
+   * @param {boolean} showMotor si false, no se arma el conjunto motor+carcasa (para las
+   *        cintas de color, donde ese "rodillo con carcasa" antes de cada recipiente
+   *        estorbaba la vista — solo debe existir un motor visible: el de la cinta principal)
    */
-  constructor({ length, legHeight = BELT.y, motorAtEnd = true, color = COLORS_SCENE.belt }) {
+  constructor({ length, legHeight = BELT.y, motorAtEnd = true, showMotor = true, color = COLORS_SCENE.belt }) {
     this.length = length;
     this.group = new THREE.Group();
 
@@ -53,15 +56,19 @@ export class ConveyorBelt {
       this.group.add(leg);
     }
 
-    // --- motor en un extremo ---
-    this.motor = new Motor({ radius: BELT.width / 2 - 0.05, length: BELT.width * 0.9 });
-    this.motor.group.rotation.y = Math.PI / 2;
-    const mx = motorAtEnd ? length / 2 + 0.1 : -length / 2 - 0.1;
-    this.motor.group.position.set(mx, legHeight, 0);
-    this.group.add(this.motor.group);
+    // --- motor en un extremo (opcional) ---
+    if (showMotor) {
+      this.motor = new Motor({ radius: BELT.width / 2 - 0.05, length: BELT.width * 0.9 });
+      this.motor.group.rotation.y = Math.PI / 2;
+      const mx = motorAtEnd ? length / 2 + 0.1 : -length / 2 - 0.1;
+      this.motor.group.position.set(mx, legHeight, 0);
+      this.group.add(this.motor.group);
+    } else {
+      this.motor = null;
+    }
   }
 
   update(dt) {
-    this.motor.update(dt);
+    if (this.motor) this.motor.update(dt);
   }
 }

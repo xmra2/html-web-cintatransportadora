@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulador de Clasificación de Tapitas por Color</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="css/style.css" />
   <script type="importmap">
     {
@@ -23,15 +29,19 @@
         <h1>CLASIFICADOR DE TAPITAS</h1>
         <div class="sub">Etapa 2 — simulación física completa</div>
       </div>
-      <button id="hud-toggle" class="hud-toggle-btn" aria-expanded="true" aria-controls="hud-body" aria-label="Mostrar/ocultar panel">
-        <span class="hud-toggle-icon"></span>
-      </button>
+      <div class="hud-header-actions">
+        <button id="playpause-mini" class="mini-btn mini-btn--play" aria-label="Pausar/Iniciar">
+          <span class="mini-btn-icon"></span>
+        </button>
+        <button id="hud-toggle" class="hud-toggle-btn" aria-expanded="true" aria-controls="hud-body" aria-label="Mostrar/ocultar panel">
+          <span class="hud-toggle-icon"></span>
+        </button>
+      </div>
     </div>
 
     <div class="hud-body" id="hud-body">
       <div class="ctrl-row">
-        <button id="start-btn" class="ctrl-btn">▶ Iniciar</button>
-        <button id="pause-btn" class="ctrl-btn">⏸ Pausar</button>
+        <button id="playpause-btn" class="ctrl-btn ctrl-btn--primary">▶ Iniciar</button>
         <button id="reset-btn" class="ctrl-btn">⟲ Reiniciar</button>
       </div>
 

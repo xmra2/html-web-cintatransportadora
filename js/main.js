@@ -30,7 +30,7 @@ capSystem.onColorDetected = (typeKey, label) => {
   detectedResetTimer = setTimeout(() => detectedEl.classList.remove('pulse'), 350);
 };
 
-// --- Iniciar / Pausar / Reiniciar ---
+// --- Iniciar/Pausar (un solo botón, con versión chica siempre visible) / Reiniciar ---
 // El render loop (SceneManager) corre siempre, para que la cámara orbital
 // funcione incluso en pausa; lo que se congela es la simulación en sí
 // (cintas, tapitas, sensor, barras).
@@ -46,19 +46,26 @@ sceneManager.onUpdate((dt) => {
 
 sceneManager.start();
 
-const startBtn = document.getElementById('start-btn');
-const pauseBtn = document.getElementById('pause-btn');
+const playPauseBtn = document.getElementById('playpause-btn');
+const playPauseMiniBtn = document.getElementById('playpause-mini');
 const resetBtn = document.getElementById('reset-btn');
 
 function setPaused(value) {
   paused = value;
-  pauseBtn.classList.toggle('is-active', paused);
-  startBtn.classList.toggle('is-active', !paused);
+  const label = paused ? '▶ Iniciar' : '⏸ Pausar';
+  playPauseBtn.textContent = label;
+  playPauseBtn.classList.toggle('is-active', !paused);
+  playPauseMiniBtn.classList.toggle('is-playing', !paused);
+  playPauseMiniBtn.setAttribute('aria-label', paused ? 'Iniciar' : 'Pausar');
 }
 setPaused(false);
 
-startBtn.addEventListener('click', () => setPaused(false));
-pauseBtn.addEventListener('click', () => setPaused(true));
+function togglePaused() {
+  setPaused(!paused);
+}
+playPauseBtn.addEventListener('click', togglePaused);
+playPauseMiniBtn.addEventListener('click', togglePaused);
+
 resetBtn.addEventListener('click', () => {
   capSystem.resetAll();
   machine.resetBins();
