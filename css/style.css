@@ -27,6 +27,61 @@ html, body {
   color: #dfe4ea;
   backdrop-filter: blur(4px);
   min-width: 230px;
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+}
+
+.hud-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hud-toggle-btn {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid #3a4048;
+  border-radius: 3px;
+  background: #2b2f36;
+  cursor: pointer;
+  display: none; /* solo se muestra en mobile (ver media query) */
+  align-items: center;
+  justify-content: center;
+}
+
+.hud-toggle-icon,
+.hud-toggle-icon::before,
+.hud-toggle-icon::after {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 2px;
+  background: #dfe4ea;
+  position: relative;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.hud-toggle-icon::before { position: absolute; top: -5px; }
+.hud-toggle-icon::after  { position: absolute; top: 5px; }
+
+/* El panel ABIERTO muestra la X (para cerrar); CERRADO muestra las tres
+   rayitas (para abrir) — es el estado por defecto de .hud-toggle-icon,
+   así que solo hace falta transformar cuando NO está colapsado. */
+.hud:not(.is-collapsed) .hud-toggle-icon { background: transparent; }
+.hud:not(.is-collapsed) .hud-toggle-icon::before { top: 0; transform: rotate(45deg); }
+.hud:not(.is-collapsed) .hud-toggle-icon::after  { top: 0; transform: rotate(-45deg); }
+
+.hud-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.hud.is-collapsed .hud-body {
+  display: none;
 }
 
 .hud h1 {
@@ -109,6 +164,74 @@ html, body {
   color: #7d8590;
   margin-top: 8px;
   letter-spacing: 0.3px;
+}
+
+/* --- Secciones plegables (Velocidad, Cola de entrada) --------------- */
+.collapsible {
+  border-top: 1px solid #262b31;
+  padding-top: 8px;
+}
+
+.collapsible-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  color: #c4cad2;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.collapsible-header .chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid #8a9099;
+  border-bottom: 1.5px solid #8a9099;
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+  margin-left: 8px;
+  flex: 0 0 auto;
+}
+
+.collapsible-header.is-closed .chevron {
+  transform: rotate(-45deg);
+}
+
+.collapsible-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.collapsible-body.is-closed {
+  display: none;
+}
+
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.speed-row input[type="range"] {
+  flex: 1;
+  accent-color: #ff8c1a;
+}
+
+.speed-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffb020;
+  min-width: 34px;
+  text-align: right;
 }
 
 .btn-row {
@@ -196,12 +319,33 @@ html, body {
 }
 
 @media (max-width: 480px) {
+  .hud-toggle-btn {
+    display: flex; /* el hamburguesa/X solo existe en mobile: en desktop el panel siempre está abierto */
+  }
+
   .hud {
     top: 10px;
     left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
     padding: 10px 12px;
-    max-width: calc(100% - 20px);
     font-size: 12.5px;
   }
+
+  /* Arranca cerrado en celular: solo se ve el título + botón, y se
+     expande al tocar el botón (el JS agrega/quita is-collapsed). */
+  .hud.is-collapsed .hud-body { display: none; }
+
   .hint { display: none; } /* en touch no aplica "click + arrastrar" */
+
+  /* Objetivos táctiles más grandes */
+  .ctrl-btn, .cap-btn, .collapsible-header, .seq-row button, .hud-toggle-btn {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .speed-row input[type="range"] {
+    height: 22px; /* más fácil de agarrar con el dedo */
+  }
 }

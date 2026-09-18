@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS_SCENE, CAP } from '../config/config.js';
+import { COLORS_SCENE, CAP, SPEED } from '../config/config.js';
 
 // =====================================================================
 // Motor
@@ -31,6 +31,6 @@ export class Motor {
   }
 
   update(dt) {
-    this.roller.rotation.x += this.speed * dt;
+    this.roller.rotation.x += this.speed * SPEED.multiplier * dt;
   }
 }

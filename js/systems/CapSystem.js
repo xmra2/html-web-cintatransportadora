@@ -1,6 +1,6 @@
 import {
   CAP, CAP_TYPES, LANES, BELT, TUNNEL, SENSOR_X, DEFLECT,
-  LEAVE_DISTANCE, FALL, FEED_GATE_GAP, BAR_COLLISION_RADIUS, BAR_GATE_X
+  LEAVE_DISTANCE, FALL, FEED_GATE_GAP, BAR_COLLISION_RADIUS, BAR_GATE_X, SPEED
 } from '../config/config.js';
 import { CAP_STATES as S } from '../config/states.js';
 import { Cap } from '../entities/Cap.js';
@@ -51,6 +51,11 @@ export class CapSystem {
   }
 
   // --- API pública (usada por el HUD / main.js) ---------------------
+
+  /** Velocidad lineal efectiva (unidades/seg), afectada por el control de Velocidad del HUD. */
+  get _v() {
+    return CAP.speed * SPEED.multiplier;
+  }
 
   /** Encola manualmente una tapita del color indicado ('red'|'green'|'blue'). */
   enqueue(typeKey) {
@@ -152,7 +157,7 @@ export class CapSystem {
     this.spawnCooldown -= dt;
     if (this.spawnCooldown <= 0 && this._waitingCount() < MAX_QUEUE) {
       this.enqueue(this._randomType());
-      this.spawnCooldown = (FEED_GATE_GAP / CAP.speed) * (0.8 + Math.random() * 0.6);
+      this.spawnCooldown = (FEED_GATE_GAP / this._v) * (0.8 + Math.random() * 0.6);
     }
   }
 
@@ -180,13 +185,13 @@ export class CapSystem {
   _advance(cap, dt) {
     switch (cap.state) {
       case S.IN_FEED_TUNNEL:
-        cap.x += CAP.speed * dt;
+        cap.x += this._v * dt;
         cap.z = 0;
         if (cap.x >= TUNNEL.endX) cap.state = S.ON_MAIN_BELT;
         break;
 
       case S.ON_MAIN_BELT:
-        cap.x += CAP.speed * dt;
+        cap.x += this._v * dt;
         cap.z = 0;
         // No dejamos pasar una segunda tapita a la zona de las barras
         // mientras la anterior todavía se está desviando: si no, ambas
@@ -202,7 +207,7 @@ export class CapSystem {
         break;
 
       case S.MOVING_TO_SORTER:
-        cap.x += CAP.speed * dt;
+        cap.x += this._v * dt;
         cap.z = 0;
         // Enclavamiento: si alguna hoja todavía está girando, la tapita
         // espera JUSTO ANTES del arco que barre la barra. Así la hoja
@@ -219,12 +224,12 @@ export class CapSystem {
         break;
 
       case S.ON_COLOR_BELT:
-        cap.x += CAP.speed * dt;
+        cap.x += this._v * dt;
         if (cap.x >= BELT.secondaryEndX) cap.state = S.LEAVING_BELT;
         break;
 
       case S.LEAVING_BELT:
-        cap.x += CAP.speed * dt;
+        cap.x += this._v * dt;
         if (cap.x >= BELT.secondaryEndX + LEAVE_DISTANCE) this._beginFalling(cap);
         break;
 
@@ -242,7 +247,7 @@ export class CapSystem {
     if (this.onColorDetected) this.onColorDetected(cap.typeKey, def.label);
     // la detección es instantánea: en el mismo frame pasa a dirigirse al clasificador
     cap.state = S.MOVING_TO_SORTER;
-    cap.x += CAP.speed * 0.001; // evita quedar exactamente en el umbral
+    cap.x += this._v * 0.001; // evita quedar exactamente en el umbral
   }
 
   /**
@@ -253,7 +258,7 @@ export class CapSystem {
    * todavía no empezó a girar, la tapita no arranca a curvar.
    */
   _advanceDiverting(cap, dt) {
-    cap.x += CAP.speed * dt;
+    cap.x += this._v * dt;
     const targetZ = LANES[cap.lane].z;
 
     if (cap.lane === 'center') {

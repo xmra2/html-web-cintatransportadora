@@ -78,6 +78,18 @@ export class Machine {
       const targetZ = LANES[lane].z;
       const group = new THREE.Group();
 
+      // Las TRES curvas arrancan en el mismo punto (t=0 -> z=0 para
+      // cualquier targetZ): recién arrancan a divergir de a poco. El
+      // borde INTERNO (el que mira hacia el centro) de 'left' y de
+      // 'right' avanza hacia z=0 a medida que su carril se abre, y en
+      // algún punto termina cruzando el borde del carril 'center' (que
+      // es fijo, en ±0.45) — ahí es donde se forma la "X" de bordes
+      // grises. La solución: 'left' y 'right' solo dibujan su borde
+      // EXTERNO (el que de verdad hace falta, para no caerse por afuera
+      // del abanico); el borde interno lo cubre de sobra el borde fijo
+      // de 'center'. 'center' sigue dibujando los dos, como siempre.
+      const skipSide = lane === 'left' ? -1 : lane === 'right' ? 1 : null;
+
       // Puntos muestreados a lo largo de la curva ('center' da targetZ=0,
       // así que le sale una recta sin necesitar un caso aparte).
       const pts = [];
@@ -106,6 +118,7 @@ export class Machine {
         const perpX = Math.sin(angle) * (BELT.width / 2);
         const perpZ = Math.cos(angle) * (BELT.width / 2);
         for (const side of [1, -1]) {
+          if (side === skipSide) continue;
           const edge = new THREE.Mesh(new THREE.BoxGeometry(segLength, 0.06, 0.05), edgeMat);
           edge.position.set(
             midX + perpX * side,

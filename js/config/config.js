@@ -33,8 +33,18 @@ export const DEFLECT = {
 export const CAP = {
   radius: 0.33,    // diámetro 0.66, ligeramente menor que el ancho de cinta
   height: 0.28,
-  speed: 1.55,          // unidades/seg sobre toda la línea
+  speed: 1.55,          // unidades/seg "nominales" sobre toda la línea (velocidad base, 1.0x)
   minSpawnGap: 1.45     // separación mínima entre tapitas (fila única)
+};
+
+// Control de velocidad en tiempo real (panel "Velocidad" del HUD). Es un
+// objeto MUTABLE (no una constante numérica) para que Motor.js y
+// CapSystem.js siempre lean el valor actual sin tener que pasarlo a mano
+// por todos lados: la UI solo hace `SPEED.multiplier = valor`.
+export const SPEED = {
+  multiplier: 1,   // 1 = velocidad nominal (CAP.speed). El slider lo mueve entre ~0.4 y 2.5
+  min: 0.4,
+  max: 2.5
 };
 
 export const BIN_X = 6.9;
@@ -81,19 +91,20 @@ export const BAR = {
   // justo en la boca del abanico, en el borde interno de cada carril.
   // Cada barra cuelga de ese eje hacia AGUAS ARRIBA (hacia el túnel), y
   // al abrirse su punta libre barre hacia ADENTRO cruzando el canal.
-  pivotX: 1.50,        // sobre el eje de avance: en el arranque del abanico
+  pivotX: 1.48,        // sobre el eje de avance: en el arranque del abanico
   pivotZ: BELT.width / 2, // ±0.45: borde del canal central (eje espejado)
 
-  length: 1.76,        // largo de la hoja (desde el eje hacia aguas arriba)
+  length: 1.341,       // largo de la hoja (desde el eje hacia aguas arriba)
   thickness: 0.10,     // espesor de la hoja (la mitad se usa como radio de colisión)
   height: 0.18,        // alto de la hoja sobre la cinta (tapa el cuerpo de la tapita)
 
-  activeAngleDeg: 33,  // apertura: la punta cruza de un borde al otro.
-                       // Calibrado: con este largo/ángulo la diagonal que
-                       // forma la hoja tiene la MISMA pendiente con la que
-                       // se abre el abanico, así la tapita empujada por la
-                       // barra sigue cayendo siempre sobre cinta dibujada
-                       // (nunca queda al aire ni sale del borde).
+  activeAngleDeg: 34,  // apertura completa (como estaba antes de acortarla).
+                       // El cruce en "X" que se veía NO era esto: eran los
+                       // bordes/guardas grises de los carriles (ver
+                       // Machine.js, _buildBridgeBelts) cruzándose contra
+                       // el borde del carril central. Con eso ya resuelto,
+                       // la barra puede volver a abrirse del todo; la punta
+                       // llega hasta 0.15 del borde opuesto (nunca lo toca).
   servoSpeedDeg: 220   // velocidad angular del servomotor (grados/seg)
 };
 

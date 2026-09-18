@@ -1,7 +1,7 @@
 import { SceneManager } from './core/SceneManager.js';
 import { Machine } from './machine/Machine.js';
 import { CapSystem } from './systems/CapSystem.js';
-import { CAP_TYPES } from './config/config.js';
+import { CAP_TYPES, SPEED } from './config/config.js';
 
 // =====================================================================
 // main.js
@@ -113,3 +113,57 @@ sequenceBtn.addEventListener('click', () => {
 // --- Alimentación automática on/off ---
 const autoToggle = document.getElementById('auto-toggle');
 autoToggle.addEventListener('change', () => capSystem.setAutoSpawn(autoToggle.checked));
+
+// --- Panel principal: colapsar/expandir (hamburguesa, para celular) ---
+// En desktop el panel arranca siempre abierto. En pantallas chicas arranca
+// cerrado (solo título + botón) y el botón lo expande/contrae.
+const hudPanel = document.getElementById('hud-panel');
+const hudToggleBtn = document.getElementById('hud-toggle');
+const hudBody = document.getElementById('hud-body');
+const MOBILE_BREAKPOINT = 480;
+
+function setHudCollapsed(collapsed) {
+  hudPanel.classList.toggle('is-collapsed', collapsed);
+  hudToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+}
+setHudCollapsed(window.innerWidth <= MOBILE_BREAKPOINT);
+
+hudToggleBtn.addEventListener('click', () => {
+  setHudCollapsed(!hudPanel.classList.contains('is-collapsed'));
+});
+
+// Si el usuario rota el celular o cambia de ventana a un tamaño distinto,
+// no lo forzamos a un estado: solo fijamos el estado inicial una vez.
+// (evita "pelearle" al usuario si lo abrió a mano y luego redimensiona)
+
+// --- Secciones plegables genéricas (Velocidad, Cola de entrada) -------
+function setupCollapsible(headerId, bodyId, { startOpen = true } = {}) {
+  const header = document.getElementById(headerId);
+  const body = document.getElementById(bodyId);
+  let open = startOpen;
+  const apply = () => {
+    header.classList.toggle('is-closed', !open);
+    body.classList.toggle('is-closed', !open);
+    header.setAttribute('aria-expanded', String(open));
+  };
+  apply();
+  header.addEventListener('click', () => {
+    open = !open;
+    apply();
+  });
+}
+setupCollapsible('speed-toggle', 'speed-body');
+setupCollapsible('feed-toggle', 'feed-body');
+
+// --- Control de velocidad -------------------------------------------
+const speedSlider = document.getElementById('speed-slider');
+const speedValueEl = document.getElementById('speed-value');
+speedSlider.min = SPEED.min;
+speedSlider.max = SPEED.max;
+speedSlider.value = SPEED.multiplier;
+speedValueEl.textContent = `${SPEED.multiplier.toFixed(1)}×`;
+
+speedSlider.addEventListener('input', () => {
+  SPEED.multiplier = parseFloat(speedSlider.value);
+  speedValueEl.textContent = `${SPEED.multiplier.toFixed(1)}×`;
+});

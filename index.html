@@ -17,51 +17,80 @@
 <body>
   <canvas id="scene-canvas"></canvas>
 
-  <div class="hud">
-    <h1>CLASIFICADOR DE TAPITAS</h1>
-    <div class="sub">Etapa 2 — simulación física completa</div>
-
-    <div class="ctrl-row">
-      <button id="start-btn" class="ctrl-btn">▶ Iniciar</button>
-      <button id="pause-btn" class="ctrl-btn">⏸ Pausar</button>
-      <button id="reset-btn" class="ctrl-btn">⟲ Reiniciar</button>
+  <div class="hud" id="hud-panel">
+    <div class="hud-header" id="hud-header">
+      <div class="hud-title-group">
+        <h1>CLASIFICADOR DE TAPITAS</h1>
+        <div class="sub">Etapa 2 — simulación física completa</div>
+      </div>
+      <button id="hud-toggle" class="hud-toggle-btn" aria-expanded="true" aria-controls="hud-body" aria-label="Mostrar/ocultar panel">
+        <span class="hud-toggle-icon"></span>
+      </button>
     </div>
 
-    <div id="detected-color" class="detected">COLOR DETECTADO: —</div>
+    <div class="hud-body" id="hud-body">
+      <div class="ctrl-row">
+        <button id="start-btn" class="ctrl-btn">▶ Iniciar</button>
+        <button id="pause-btn" class="ctrl-btn">⏸ Pausar</button>
+        <button id="reset-btn" class="ctrl-btn">⟲ Reiniciar</button>
+      </div>
 
-    <div class="bin-row">
-      <span class="dot dot-left"></span>
-      <span class="name" id="label-left">Izquierda</span>
-      <span class="value" id="count-left">0</span>
-    </div>
-    <div class="bin-row">
-      <span class="dot dot-center"></span>
-      <span class="name" id="label-center">Centro</span>
-      <span class="value" id="count-center">0</span>
-    </div>
-    <div class="bin-row">
-      <span class="dot dot-right"></span>
-      <span class="name" id="label-right">Derecha</span>
-      <span class="value" id="count-right">0</span>
-    </div>
+      <div id="detected-color" class="detected">COLOR DETECTADO: —</div>
 
-    <div class="section-title">Cola de entrada (<span id="queue-length">0</span> esperando)</div>
-    <div class="btn-row">
-      <button class="cap-btn cap-btn--red" data-add-color="red">+ Roja</button>
-      <button class="cap-btn cap-btn--green" data-add-color="green">+ Verde</button>
-      <button class="cap-btn cap-btn--blue" data-add-color="blue">+ Azul</button>
-    </div>
+      <div class="bin-row">
+        <span class="dot dot-left"></span>
+        <span class="name" id="label-left">Izquierda</span>
+        <span class="value" id="count-left">0</span>
+      </div>
+      <div class="bin-row">
+        <span class="dot dot-center"></span>
+        <span class="name" id="label-center">Centro</span>
+        <span class="value" id="count-center">0</span>
+      </div>
+      <div class="bin-row">
+        <span class="dot dot-right"></span>
+        <span class="name" id="label-right">Derecha</span>
+        <span class="value" id="count-right">0</span>
+      </div>
 
-    <div class="section-title">Secuencia rápida</div>
-    <div class="seq-row">
-      <input id="sequence-input" type="text" placeholder="rojo,verde,azul,rojo" />
-      <button id="sequence-add">Agregar</button>
-    </div>
+      <div class="collapsible">
+        <button class="collapsible-header" id="speed-toggle" aria-expanded="true" aria-controls="speed-body">
+          <span>Velocidad</span>
+          <span class="chevron"></span>
+        </button>
+        <div class="collapsible-body" id="speed-body">
+          <div class="speed-row">
+            <input type="range" id="speed-slider" min="0.4" max="2.5" step="0.1" value="1" />
+            <span class="speed-value" id="speed-value">1.0×</span>
+          </div>
+        </div>
+      </div>
 
-    <label class="toggle-row">
-      <input type="checkbox" id="auto-toggle" checked />
-      Alimentación automática
-    </label>
+      <div class="collapsible">
+        <button class="collapsible-header" id="feed-toggle" aria-expanded="true" aria-controls="feed-body">
+          <span>Cola de entrada (<span id="queue-length">0</span> esperando)</span>
+          <span class="chevron"></span>
+        </button>
+        <div class="collapsible-body" id="feed-body">
+          <div class="btn-row">
+            <button class="cap-btn cap-btn--red" data-add-color="red">+ Roja</button>
+            <button class="cap-btn cap-btn--green" data-add-color="green">+ Verde</button>
+            <button class="cap-btn cap-btn--blue" data-add-color="blue">+ Azul</button>
+          </div>
+
+          <div class="section-title">Secuencia rápida</div>
+          <div class="seq-row">
+            <input id="sequence-input" type="text" placeholder="rojo,verde,azul,rojo" />
+            <button id="sequence-add">Agregar</button>
+          </div>
+
+          <label class="toggle-row">
+            <input type="checkbox" id="auto-toggle" checked />
+            Alimentación automática
+          </label>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="hint">Click + arrastrar: orbitar · Scroll: zoom</div>
